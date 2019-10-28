@@ -128,6 +128,28 @@ int hash_quitar(hash_t* hash, const char* clave){
  */
 void* hash_obtener(hash_t* hash, const char* clave){
 
+	if(!hash || !clave)
+		return NULL;
+
+	int pos = determinar_posicion_hash(clave) % hash->capacidad;
+	
+	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos]);
+	if(!iter)
+		return NULL;
+
+	bool encontro = false;
+	elemento_t* elem; 
+	while(lista_iterador_tiene_siguiente(iter)){
+
+		elem = lista_iterador_siguiente(iter);
+		if(strcmp(elem->clave, clave) == 0)
+			encontro = true;
+	}
+
+	if(encontro)
+		return elem->elemento;
+	else
+		return NULL;
 }
 
 /*
