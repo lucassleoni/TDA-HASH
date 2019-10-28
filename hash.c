@@ -55,23 +55,13 @@ hash_t* hash_crear(hash_destruir_dato_t destruir_elemento, size_t capacidad){
 	return hash;
 }
 
-
-void crear_elemento(elemento_t* elem, const char* clave, void* elemento){
-
-	if(!elem || !clave)
-		return;
-
-	elem->clave = strdup(clave);
-	elem->elemento = elemento;
-}
-
 int determinar_posicion_hash(const char* clave){
 
 	if(!clave)
 		return ERROR;
 
 	int tamanio_clave = strlen(clave);
-	int numero = 7;
+	int numero = 256;
 	int resultado = 0;
 
 	for(int i = 0; i < tamanio_clave; i++)
@@ -80,6 +70,21 @@ int determinar_posicion_hash(const char* clave){
 	return resultado;
 }
 
+
+elemento_t* crear_elemento(const char* clave, void* elemento){
+
+	if(!clave)
+		return NULL;
+
+	elemento_t* elem = malloc(sizeof(elemento_t));
+	if(!elemento)
+		return NULL;
+
+	elem->clave = strdup(clave);
+	elem->elemento = elemento;
+
+	return elem;
+}
 /*
  * Inserta un elemento reservando la memoria necesaria para el mismo.
  * Devuelve 0 si pudo guardarlo o -1 si no pudo.
@@ -89,18 +94,19 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 	if(!hash || !clave)
 		return ERROR;
 
-	if(hash_contiene(hash, clave))
+	if(hash_contiene(hash, clave)){
+		return ERROR;
 		hash_quitar(hash, clave);
+	}
 		
 
 	
-	elemento_t elemento_a_insertar;
-	crear_elemento(&elemento_a_insertar, clave, elemento);
-
-
+	elemento_t* elemento_a_insertar = crear_elemento(clave, elemento);
+	if(!elemento_a_insertar)
+		return ERROR;
 
 	int pos_hash = determinar_posicion_hash(clave) % hash->capacidad;
-	int retorno = lista_insertar(hash->index[pos_hash], &elemento_a_insertar);
+	int retorno = lista_insertar(hash->index[pos_hash], elemento_a_insertar);
 
 	
 
