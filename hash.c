@@ -139,7 +139,7 @@ void* hash_obtener(hash_t* hash, const char* clave){
 
 	bool encontro = false;
 	elemento_t* elem; 
-	while(lista_iterador_tiene_siguiente(iter)){
+	while(lista_iterador_tiene_siguiente(iter) && !encontro){
 
 		elem = lista_iterador_siguiente(iter);
 		if(strcmp(elem->clave, clave) == 0)
