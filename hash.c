@@ -12,7 +12,7 @@
 struct hash{
 	lista_t** index;
 	hash_destruir_dato_t destructor;
-	size_t cantidad_elementos;	
+	size_t cantidad_elementos;
 	size_t capacidad;
 };
 
@@ -98,17 +98,15 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 		return ERROR;
 		hash_quitar(hash, clave);
 	}
-		
 
-	
+
+
 	elemento_t* elemento_a_insertar = crear_elemento(clave, elemento);
 	if(!elemento_a_insertar)
 		return ERROR;
 
 	int pos_hash = determinar_posicion_hash(clave) % hash->capacidad;
 	int retorno = lista_insertar(hash->index[pos_hash], elemento_a_insertar);
-
-	
 
 	return retorno;
 }
@@ -120,6 +118,29 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
  */
 int hash_quitar(hash_t* hash, const char* clave){
 
+	if(!hash || !clave)
+	return ERROR;
+
+	int pos_hash = determinar_posicion_hash(clave) % hash->capacidad;
+	int posicion_a_borrar = 0;
+	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos_hash]);
+	bool encontro = false;
+	elemento_t* elem;
+
+	while(lista_iterador_tiene_siguiente(iter) && !encontro){
+		elem = lista_iterador_siguiente(iter);
+		if(strcmp(elem->clave, clave) == 0)
+			encontro = true;
+		posicion_a_borrar++;
+	}
+
+
+	if(encontro){
+		//free(elem->clave);
+		hash->destructor(elem->elemento);
+		return lista_borrar_de_posicion(hash->index[pos_hash], posicion_a_borrar);}
+	else
+		return ERROR;
 }
 
 /*
@@ -132,13 +153,13 @@ void* hash_obtener(hash_t* hash, const char* clave){
 		return NULL;
 
 	int pos = determinar_posicion_hash(clave) % hash->capacidad;
-	
+
 	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos]);
 	if(!iter)
 		return NULL;
 
 	bool encontro = false;
-	elemento_t* elem; 
+	elemento_t* elem;
 	while(lista_iterador_tiene_siguiente(iter) && !encontro){
 
 		elem = lista_iterador_siguiente(iter);
@@ -162,7 +183,7 @@ bool hash_contiene(hash_t* hash, const char* clave){
 		return false;
 
 	int pos = determinar_posicion_hash(clave) % hash->capacidad;
-	
+
 	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos]);
 	if(!iter)
 		return false;
@@ -170,7 +191,7 @@ bool hash_contiene(hash_t* hash, const char* clave){
 
 	while(lista_iterador_tiene_siguiente(iter) && !encontro){
 		elemento_t* elem = lista_iterador_siguiente(iter);
-		
+
 		if(strcmp(elem->clave, clave) == 0)
 			encontro = true;
 	}
@@ -189,9 +210,32 @@ size_t hash_cantidad(hash_t* hash){
 	return hash->cantidad_elementos;
 }
 
+void borrar_todos_los_elementos(hash_t* hash){
+
+	if(!hash)
+		return;
+
+	size_t i = 0;
+	while(i < hash->capacidad){
+		while(!lista_vacia(hash->index[i]))
+			lista_borrar(hash->index[i]);
+		i++;
+	}
+}
 /*
  * Destruye el hash liberando la memoria reservada y asegurandose de
  * invocar la funcion destructora con cada elemento almacenado en el
  * hash.
  */
-void hash_destruir(hash_t* hash);
+void hash_destruir(hash_t* hash){
+
+	if(!hash)
+		return;
+
+	for (size_t i = 0; i < hash->capacidad; i++)
+		lista_destruir(hash->index[i]);
+
+	borrar_todos_los_elementos(hash);
+
+	free(hash);
+}
