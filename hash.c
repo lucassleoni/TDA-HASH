@@ -22,14 +22,6 @@ typedef struct elemento{
 }elemento_t;
 
 
-void inicializar_listas(hash_t* hash){
-
-	if(!hash)
-		return;
-
-	for (int i = 0; i < hash->capacidad; ++i)
-		hash->index[i] = lista_crear();
-}
 /*
  * Crea el hash reservando la memoria necesaria para el.
  * Destruir_elemento es un destructor que se utilizará para liberar
@@ -43,17 +35,22 @@ hash_t* hash_crear(hash_destruir_dato_t destruir_elemento, size_t capacidad){
 	if(!hash)
 		return NULL;
 
+	hash->capacidad = capacidad;
 	hash->cantidad_elementos = SIN_ELEMENTOS;
+	hash->destructor = destruir_elemento;
+
 	hash->index = malloc(sizeof(lista_t) * capacidad);
 	if(!hash->index){
 		free(hash);
 		return NULL;
 	}
-	hash->capacidad = capacidad;
-	inicializar_listas(hash);
-	hash->destructor = destruir_elemento;
+
+	for (int i = 0; i < hash->capacidad; ++i)
+		hash->index[i] = lista_crear();
+	
 	return hash;
 }
+
 
 int determinar_posicion_hash(const char* clave){
 
@@ -61,7 +58,7 @@ int determinar_posicion_hash(const char* clave){
 		return ERROR;
 
 	int tamanio_clave = strlen(clave);
-	int numero = 256;
+	int numero = 257;
 	int resultado = 0;
 
 	for(int i = 0; i < tamanio_clave; i++)
@@ -70,17 +67,16 @@ int determinar_posicion_hash(const char* clave){
 	return resultado;
 }
 
-
 elemento_t* crear_elemento(const char* clave, void* elemento){
 
 	if(!clave)
 		return NULL;
 
 	elemento_t* elem = malloc(sizeof(elemento_t));
-	if(!elemento)
+	if(!elem)
 		return NULL;
 
-	elem->clave = strdup(clave);
+	elem->clave = clave;
 	elem->elemento = elemento;
 
 	return elem;
@@ -94,21 +90,14 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 	if(!hash || !clave)
 		return ERROR;
 
-	if(hash_contiene(hash, clave)){
-		return ERROR;
-		hash_quitar(hash, clave);
-	}
-
-
-
 	elemento_t* elemento_a_insertar = crear_elemento(clave, elemento);
 	if(!elemento_a_insertar)
 		return ERROR;
 
-	int pos_hash = determinar_posicion_hash(clave) % hash->capacidad;
-	int retorno = lista_insertar(hash->index[pos_hash], elemento_a_insertar);
+	int posicion_hash = determinar_posicion_hash(clave) % hash->capacidad;
+	hash->cantidad_elementos++;
 
-	return retorno;
+	return lista_insertar(hash->index[posicion_hash], elemento_a_insertar);
 }
 
 /*
@@ -119,26 +108,34 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 int hash_quitar(hash_t* hash, const char* clave){
 
 	if(!hash || !clave)
-	return ERROR;
+		return ERROR;
 
-	int pos_hash = determinar_posicion_hash(clave) % hash->capacidad;
-	int posicion_a_borrar = 0;
-	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos_hash]);
-	bool encontro = false;
+	int posicion_hash = determinar_posicion_hash(clave) % hash->capacidad;
+
+	lista_iterador_t* iter = lista_iterador_crear(hash->index[posicion_hash]);
+	if(!iter)
+		return ERROR;
+
 	elemento_t* elem;
+	int posicion_a_borrar = 0;
+	bool encontro = false;
 
 	while(lista_iterador_tiene_siguiente(iter) && !encontro){
 		elem = lista_iterador_siguiente(iter);
-		if(strcmp(elem->clave, clave) == 0)
+
+		if(strcmp(elem->clave, clave ) == 0)
 			encontro = true;
-		posicion_a_borrar++;
+		else
+			posicion_a_borrar++;
 	}
 
+	lista_iterador_destruir(iter);
 
 	if(encontro){
-		//free(elem->clave);
 		hash->destructor(elem->elemento);
-		return lista_borrar_de_posicion(hash->index[pos_hash], posicion_a_borrar);}
+		free(elem);
+		return lista_borrar_de_posicion(hash->index[posicion_hash], posicion_a_borrar);
+	}
 	else
 		return ERROR;
 }
@@ -152,23 +149,25 @@ void* hash_obtener(hash_t* hash, const char* clave){
 	if(!hash || !clave)
 		return NULL;
 
-	int pos = determinar_posicion_hash(clave) % hash->capacidad;
-
-	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos]);
+	int posicion_hash = determinar_posicion_hash(clave) % hash->capacidad;
+	lista_iterador_t* iter = lista_iterador_crear(hash->index[posicion_hash]);
 	if(!iter)
 		return NULL;
 
 	bool encontro = false;
 	elemento_t* elem;
+
 	while(lista_iterador_tiene_siguiente(iter) && !encontro){
 
 		elem = lista_iterador_siguiente(iter);
-		if(strcmp(elem->clave, clave) == 0)
+		if(strcmp(clave, elem->clave) == 0)
 			encontro = true;
 	}
 
+	lista_iterador_destruir(iter);
+
 	if(encontro)
-		return elem->elemento;
+		return elem;
 	else
 		return NULL;
 }
@@ -180,22 +179,25 @@ void* hash_obtener(hash_t* hash, const char* clave){
 bool hash_contiene(hash_t* hash, const char* clave){
 
 	if(!hash || !clave)
-		return false;
+		return ERROR;
 
-	int pos = determinar_posicion_hash(clave) % hash->capacidad;
-
-	lista_iterador_t* iter = lista_iterador_crear(hash->index[pos]);
+	int posicion_hash = determinar_posicion_hash(clave) % hash->capacidad;
+	lista_iterador_t* iter = lista_iterador_crear(hash->index[posicion_hash]);
 	if(!iter)
-		return false;
+		return NULL;
+
 	bool encontro = false;
+	elemento_t* elem;
 
 	while(lista_iterador_tiene_siguiente(iter) && !encontro){
-		elemento_t* elem = lista_iterador_siguiente(iter);
 
-		if(strcmp(elem->clave, clave) == 0)
+		elem = lista_iterador_siguiente(iter);
+		if(strcmp(clave, elem->clave) == 0)
 			encontro = true;
 	}
 
+	lista_iterador_destruir(iter);
+	
 	return encontro;
 }
 
@@ -205,23 +207,11 @@ bool hash_contiene(hash_t* hash, const char* clave){
 size_t hash_cantidad(hash_t* hash){
 
 	if(!hash)
-		return 0;
+		return SIN_ELEMENTOS;
 
 	return hash->cantidad_elementos;
 }
 
-void borrar_todos_los_elementos(hash_t* hash){
-
-	if(!hash)
-		return;
-
-	size_t i = 0;
-	while(i < hash->capacidad){
-		while(!lista_vacia(hash->index[i]))
-			lista_borrar(hash->index[i]);
-		i++;
-	}
-}
 /*
  * Destruye el hash liberando la memoria reservada y asegurandose de
  * invocar la funcion destructora con cada elemento almacenado en el
@@ -232,10 +222,5 @@ void hash_destruir(hash_t* hash){
 	if(!hash)
 		return;
 
-	for (size_t i = 0; i < hash->capacidad; i++)
-		lista_destruir(hash->index[i]);
-
-	borrar_todos_los_elementos(hash);
-
-	free(hash);
+	//borrar_todos_los_elementos(hash);
 }
