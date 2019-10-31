@@ -67,7 +67,7 @@ int determinar_posicion_hash(const char* clave){
 	return resultado;
 }
 
-elemento_t* crear_elemento(const char* clave, void* elemento){
+elemento_t* crear_elemento(char* clave, void* elemento){
 
 	if(!clave)
 		return NULL;
@@ -90,7 +90,7 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 	if(!hash || !clave)
 		return ERROR;
 
-	elemento_t* elemento_a_insertar = crear_elemento(clave, elemento);
+	elemento_t* elemento_a_insertar = crear_elemento((char*)clave, elemento);
 	if(!elemento_a_insertar)
 		return ERROR;
 
@@ -134,6 +134,7 @@ int hash_quitar(hash_t* hash, const char* clave){
 	if(encontro){
 		hash->destructor(elem->elemento);
 		free(elem);
+		hash->cantidad_elementos--;
 		return lista_borrar_de_posicion(hash->index[posicion_hash], posicion_a_borrar);
 	}
 	else
@@ -212,6 +213,32 @@ size_t hash_cantidad(hash_t* hash){
 	return hash->cantidad_elementos;
 }
 
+void borrar_todos_los_elementos(hash_t* hash){
+
+	if(!hash)
+		return;
+
+	elemento_t* elem;
+	for(int i = 0; i < hash->capacidad; i++){
+
+		while(!lista_vacia(hash->index[i])){
+
+			lista_iterador_t* iter = lista_iterador_crear(hash->index[i]);
+			elem = lista_iterador_siguiente(iter);
+
+			if(elem){
+				hash->destructor(elem->elemento);
+				free(elem);
+				hash->cantidad_elementos--;
+				lista_borrar_de_posicion(hash->index[i], 0);
+			}
+
+			lista_iterador_destruir(iter);
+		}
+	}
+
+}
+
 /*
  * Destruye el hash liberando la memoria reservada y asegurandose de
  * invocar la funcion destructora con cada elemento almacenado en el
@@ -222,5 +249,12 @@ void hash_destruir(hash_t* hash){
 	if(!hash)
 		return;
 
-	//borrar_todos_los_elementos(hash);
+	if(hash_cantidad(hash) != 0)
+		borrar_todos_los_elementos(hash);
+
+	for(int i = 0; i < hash->capacidad; i++)
+		lista_destruir(hash->index[i]);
+
+	free(hash->index);
+	free(hash);
 }

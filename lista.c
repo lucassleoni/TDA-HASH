@@ -350,7 +350,7 @@ bool lista_iterador_tiene_siguiente(lista_iterador_t* iterador){
  */
 void* lista_iterador_siguiente(lista_iterador_t* iterador){
 
-	if(!iterador)
+	if(!iterador || lista_vacia(iterador->lista))
 		return NULL;
 
 	if(!iterador->corriente)
@@ -361,6 +361,7 @@ void* lista_iterador_siguiente(lista_iterador_t* iterador){
 	
 	else
 		return NULL;
+
 
 	return iterador->corriente->elemento;
 }
