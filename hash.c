@@ -21,7 +21,33 @@ typedef struct elemento{
 	void* elemento;
 }elemento_t;
 
+bool inicializar_listas(hash_t* hash){
 
+	if(!hash)
+		return false;
+
+	int cantidad_inicializadas = 0;
+	int i = 0;
+	bool inicializa_correctamente = true;
+
+	while(i < hash->capacidad && inicializa_correctamente){
+
+		hash->index[i] = lista_crear();
+		if(!hash->index[i])
+			inicializa_correctamente = false;
+		else{
+			i++;
+			cantidad_inicializadas++;
+		}
+	}
+
+	if(!inicializa_correctamente){
+		for (size_t i = 0; i < cantidad_inicializadas; i++)
+			lista_destruir(hash->index[i]);
+	}
+
+	return inicializa_correctamente;
+}
 /*
  * Crea el hash reservando la memoria necesaria para el.
  * Destruir_elemento es un destructor que se utilizará para liberar
@@ -39,15 +65,18 @@ hash_t* hash_crear(hash_destruir_dato_t destruir_elemento, size_t capacidad){
 	hash->cantidad_elementos = SIN_ELEMENTOS;
 	hash->destructor = destruir_elemento;
 
-	hash->index = malloc(sizeof(lista_t) * capacidad);
+	hash->index = malloc(sizeof(void*) * capacidad);
 	if(!hash->index){
 		free(hash);
 		return NULL;
 	}
 
-	for (int i = 0; i < hash->capacidad; ++i)
-		hash->index[i] = lista_crear();
-	
+	if(!inicializar_listas(hash)){
+		free(hash->index);
+		free(hash);
+		return NULL;
+	}
+
 	return hash;
 }
 
@@ -198,7 +227,7 @@ bool hash_contiene(hash_t* hash, const char* clave){
 	}
 
 	lista_iterador_destruir(iter);
-	
+
 	return encontro;
 }
 
