@@ -91,9 +91,33 @@ void test_insercion_borrado_busqueda(){
 	}
 
 	assert_prueba("Todos los elementos tienen su correcta descripcion", coincidencias == 15);
-
+	assert_prueba("Cantidad deberia devolver 16", hash_cantidad(hash) == 16);
 	hash_destruir(hash);
 
+
+}
+
+void test_iterador(){
+
+	printf("\nTEST ITERADOR: \n\n");
+	hash_t* hash = hash_crear(destruir_string, 5);
+	hash_iterador_t* iter = hash_iterador_crear(hash);
+
+	assert_prueba("En un hash vacio, tiene siguiente deberia devolver false", !hash_iterador_tiene_siguiente(iter));
+	hash_iterador_destruir(iter);
+
+	hash_insertar(hash, "A", strdup("PRUEBA 1"));
+	//hash_insertar(hash, "ABB", strdup("PRUEBA 2"));
+	//hash_insertar(hash, "ABBC", strdup("PRUEBA 3"));
+
+	hash_iterador_t* iter2 = hash_iterador_crear(hash);
+	assert_prueba("Inserto un elemento, tiene siguiente ahora deberia devolver true", hash_iterador_tiene_siguiente(iter2));
+	assert_prueba("Siguiente me deberia devolver el elemento insertado", strcmp((char*)hash_iterador_siguiente(iter2), "A")	== 0);
+	assert_prueba("Siguiente ahora deberia devolver NULL", hash_iterador_siguiente(iter2) == NULL);
+	assert_prueba("Ya no deberia haber siguiente", !hash_iterador_tiene_siguiente(iter2));
+
+	hash_iterador_destruir(iter2);
+	hash_destruir(hash);
 
 }
 
