@@ -7,6 +7,8 @@
 typedef struct hash hash_t;
 typedef void (*hash_destruir_dato_t)(void*);
 
+
+
 /*
  * Crea el hash reservando la memoria necesaria para el.
  * Destruir_elemento es un destructor que se utilizará para liberar

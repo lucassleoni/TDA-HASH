@@ -4,6 +4,7 @@
 #include "hash.h"
 #include "lista.h"
 #include <string.h>
+#include "hash_iterador.h"
 
 #define SIN_ELEMENTOS 0
 #define ERROR -1
@@ -119,6 +120,9 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 	if(!hash || !clave)
 		return ERROR;
 
+	if(hash_contiene(hash, clave))
+		hash_quitar(hash, clave);
+
 	elemento_t* elemento_a_insertar = crear_elemento((char*)clave, elemento);
 	if(!elemento_a_insertar)
 		return ERROR;
@@ -197,7 +201,7 @@ void* hash_obtener(hash_t* hash, const char* clave){
 	lista_iterador_destruir(iter);
 
 	if(encontro)
-		return elem;
+		return elem->elemento;
 	else
 		return NULL;
 }
@@ -209,12 +213,12 @@ void* hash_obtener(hash_t* hash, const char* clave){
 bool hash_contiene(hash_t* hash, const char* clave){
 
 	if(!hash || !clave)
-		return ERROR;
+		return false;
 
 	int posicion_hash = determinar_posicion_hash(clave) % hash->capacidad;
 	lista_iterador_t* iter = lista_iterador_crear(hash->index[posicion_hash]);
 	if(!iter)
-		return NULL;
+		return false;
 
 	bool encontro = false;
 	elemento_t* elem;
@@ -287,3 +291,125 @@ void hash_destruir(hash_t* hash){
 	free(hash->index);
 	free(hash);
 }
+
+
+/* 
+################################################################################################################
+                                               ITERADOR EXTERNO
+################################################################################################################
+*/
+
+struct hash_iter{
+	hash_t* hash;
+	lista_iterador_t* lista_iterador;
+	size_t lista_actual;
+};
+
+
+
+/*
+ * Crea un iterador de claves para el hash reservando la memoria
+ * necesaria para el mismo. El iterador creado es válido desde su
+ * creación hasta que se modifique la tabla de hash (insertando o
+ * removiendo elementos);
+ *
+ * Devuelve el puntero al iterador creado o NULL en caso de error.
+ */
+hash_iterador_t* hash_iterador_crear(hash_t* hash){
+
+	if(!hash)
+		return NULL;
+
+	hash_iterador_t* iter = malloc(sizeof(hash_iterador_t));
+	if(!iter)
+		return NULL;
+
+	iter->hash = hash;
+	iter->lista_actual = 0;
+	iter->lista_iterador = lista_iterador_crear(hash->index[iter->lista_actual]);
+	if(!iter->lista_iterador){
+		free(iter);
+		return NULL;
+	}
+
+	return iter;
+}
+
+/*
+ * Devuelve la próxima clave almacenada en el hash y avanza el iterador.
+ * Devuelve la clave o NULL si no habia mas.
+ */
+void* hash_iterador_siguiente(hash_iterador_t* iterador){
+
+	if(!iterador || !iterador->hash)
+		return NULL;
+
+	if(!lista_iterador_tiene_siguiente(iterador->lista_iterador) && iterador->lista_actual == iterador->hash->capacidad - 1)
+		return NULL;
+
+	if(lista_iterador_tiene_siguiente(iterador->lista_iterador)){
+		elemento_t* elem = lista_iterador_siguiente(iterador->lista_iterador);
+		return elem->clave;
+	}
+
+	if(!lista_iterador_tiene_siguiente(iterador->lista_iterador) && iterador->lista_actual < iterador->hash->capacidad - 1){
+
+		lista_iterador_destruir(iterador->lista_iterador);
+		iterador->lista_actual++;
+		iterador->lista_iterador = lista_iterador_crear(iterador->hash->index[iterador->lista_actual]);
+		if(iterador->lista_iterador)
+			return NULL;
+
+		return hash_iterador_siguiente(iterador);
+	}
+}
+
+/*
+ * Devuelve true si quedan claves por recorrer o false en caso
+ * contrario.
+ */
+bool hash_iterador_tiene_siguiente(hash_iterador_t* iterador){
+
+	if(!iterador || !iterador->hash)
+		return false;
+
+	if(!lista_iterador_tiene_siguiente(iterador->lista_iterador) && iterador->lista_actual == iterador->hash->capacidad - 1)
+		return false;
+
+	if(lista_iterador_tiene_siguiente(iterador->lista_iterador))
+		return true;
+
+	if(!lista_iterador_tiene_siguiente(iterador->lista_iterador) && iterador->lista_actual < iterador->hash->capacidad - 1){
+
+		bool tiene_siguiente = false;
+		size_t lista_actual = iterador->lista_actual + 1;
+		while(!tiene_siguiente && lista_actual <= iterador->hash->capacidad - 1){
+			
+			lista_iterador_t* aux = lista_iterador_crear(iterador->hash->index[lista_actual]);
+			if(!aux)
+				break;
+
+			tiene_siguiente = lista_iterador_tiene_siguiente(aux);
+			lista_iterador_destruir(aux);
+			lista_actual++;
+		}
+
+		return tiene_siguiente;
+	}
+}
+
+/*
+ * Destruye el iterador del hash.
+ */
+void hash_iterador_destruir(hash_iterador_t* iterador){
+
+	if(!iterador)
+		return;
+
+	if(iterador->lista_iterador)
+		lista_iterador_destruir(iterador->lista_iterador);
+
+	free(iterador);
+}
+
+
