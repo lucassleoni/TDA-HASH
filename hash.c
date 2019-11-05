@@ -22,6 +22,9 @@ typedef struct elemento{
 	void* elemento;
 }elemento_t;
 
+
+// pre: 
+// pos: devuelve TRUE si pudo inicializar todas las listas correctamente, FALSE en caso contrario
 bool inicializar_listas(hash_t* hash){
 
 	if(!hash)
@@ -81,7 +84,8 @@ hash_t* hash_crear(hash_destruir_dato_t destruir_elemento, size_t capacidad){
 	return hash;
 }
 
-
+// pre: clave es distinto de NULL
+// pos: devuelve un entero que representa la posicion a insertar en el hash
 int determinar_posicion_hash(const char* clave){
 
 	if(!clave)
@@ -97,6 +101,8 @@ int determinar_posicion_hash(const char* clave){
 	return resultado;
 }
 
+// pre: clave es distinto de NULL
+// pos: devuelve un puntero a un elemento con dicha clave y elementos
 elemento_t* crear_elemento(char* clave, void* elemento){
 
 	if(!clave)
@@ -246,6 +252,8 @@ size_t hash_cantidad(hash_t* hash){
 	return hash->cantidad_elementos;
 }
 
+// pre:
+// pos: borra todos los elementos del hash
 void borrar_todos_los_elementos(hash_t* hash){
 
 	if(!hash)
