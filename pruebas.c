@@ -5,25 +5,23 @@
 #include "pruebas.h"
 #include <stdlib.h>
 #include <string.h>
-
 #define ERROR -1
 #define EXITO 0
 #define ANSI_COLOR_GREEN   "\x1b[1m\x1b[32m"
 #define ANSI_COLOR_RESET "\x1b[0m"
 #define ANSI_COLOR_RED	"\x1b[1m\x1b[31m"
 
-static int failure_count = 0;
-static int success_count = 0;
+static int failure_count = 0; 		// Contador de pruebas fallidas
+static int success_count = 0; 		// Contador de pruebas pasadas
 extern char* strdup(const char*);
 
+
 void destruir_string(void* elemento){
-  if(elemento){
-   
+  
+  if(elemento)
     free(elemento);
-  }
+  
 }
-
-
 
 void assert_prueba(char* prueba, bool condicion){
 
@@ -62,11 +60,9 @@ void test_insercion_borrado_busqueda(){
 
 	assert_prueba("Inserto un elemento, deberia devolver EXITO", hash_insertar(hash, "ABCD123BD", strdup("PRUEBA 1")) == EXITO);
 	assert_prueba("Dicho elemento ahora deberia estar en el hash", hash_contiene(hash, "ABCD123BD"));
-
 	assert_prueba("Borro dicho elemento, deberia devolver EXITO", hash_quitar(hash, "ABCD123BD") == EXITO);
 	assert_prueba("El elemento no deberia estar mas en el hash", !hash_contiene(hash, "ABCD123BD"));
-
-	assert_prueba("Busco un elemento que no exite, contiene deberia devolver false", !hash_contiene(hash, "ASDF12345"));
+	assert_prueba("Busco un elemento que no existe, contiene deberia devolver false", !hash_contiene(hash, "ASDF12345"));
 
 	hash_insertar(hash, "ABCD123BD", strdup("PRUEBA 1"));
 	hash_insertar(hash, "ABCD123BD", strdup("PRUEBA 2"));
@@ -82,7 +78,7 @@ void test_insercion_borrado_busqueda(){
 			correctamente_insertados++;
 	}
 
-	assert_prueba("Inserto 12 elementos, no deberia haber problemas", correctamente_insertados == 15);
+	assert_prueba("Inserto 15 elementos, no deberia haber problemas", correctamente_insertados == 15);
 
 	int coincidencias = 0;
 	for(int i = 0; i < 15; i++){
