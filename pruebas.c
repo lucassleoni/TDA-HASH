@@ -79,7 +79,7 @@ void test_insercion_borrado_busqueda(){
 	}
 
 	assert_prueba("Inserto 15 elementos, no deberia haber problemas", correctamente_insertados == 15);
-
+	
 	int coincidencias = 0;
 	for(int i = 0; i < 15; i++){
 		if(strcmp(hash_obtener(hash, patentes[i]), descripciones[i]) == 0)
@@ -88,6 +88,8 @@ void test_insercion_borrado_busqueda(){
 
 	assert_prueba("Todos los elementos tienen su correcta descripcion", coincidencias == 15);
 	assert_prueba("Cantidad deberia devolver 16", hash_cantidad(hash) == 16);
+
+
 	hash_destruir(hash);
 
 
@@ -103,16 +105,32 @@ void test_iterador(){
 	hash_iterador_destruir(iter);
 
 	hash_insertar(hash, "A", strdup("PRUEBA 1"));
-	//hash_insertar(hash, "ABB", strdup("PRUEBA 2"));
-	//hash_insertar(hash, "ABBC", strdup("PRUEBA 3"));
-
+	
 	hash_iterador_t* iter2 = hash_iterador_crear(hash);
 	assert_prueba("Inserto un elemento, tiene siguiente ahora deberia devolver true", hash_iterador_tiene_siguiente(iter2));
 	assert_prueba("Siguiente me deberia devolver el elemento insertado", strcmp((char*)hash_iterador_siguiente(iter2), "A")	== 0);
 	assert_prueba("Siguiente ahora deberia devolver NULL", hash_iterador_siguiente(iter2) == NULL);
 	assert_prueba("Ya no deberia haber siguiente", !hash_iterador_tiene_siguiente(iter2));
-
+	hash_quitar(hash, "A");
 	hash_iterador_destruir(iter2);
+	char* patentes[15] = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o"};
+	char* descripciones[15] = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"};
+
+	for (int i = 0; i < 15; ++i)
+		hash_insertar(hash, patentes[i], strdup(descripciones[i]));
+
+	int cantidad_recorridos = 0;
+	hash_iterador_t* iter3 = hash_iterador_crear(hash);
+
+	while(hash_iterador_tiene_siguiente(iter3)){
+		cantidad_recorridos++;
+		hash_iterador_siguiente(iter3);
+		
+	}
+
+
+	assert_prueba("Deberia recorrer todos los elementos despues de rehashear", cantidad_recorridos == 15);
+	hash_iterador_destruir(iter3);
 	hash_destruir(hash);
 
 }

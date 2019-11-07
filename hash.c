@@ -9,12 +9,14 @@
 #define SIN_ELEMENTOS 0
 #define ERROR -1
 #define EXITO 0
+#define FACTOR_REHASH 3
 
 struct hash{
 	lista_t** index;
 	hash_destruir_dato_t destructor;
 	size_t cantidad_elementos;
 	size_t capacidad;
+	size_t factor_carga;
 };
 
 typedef struct elemento{
@@ -25,13 +27,13 @@ typedef struct elemento{
 
 // pre: 
 // pos: devuelve TRUE si pudo inicializar todas las listas correctamente, FALSE en caso contrario
-bool inicializar_listas(hash_t* hash){
+bool inicializar_listas(hash_t* hash, int pos_inicial){
 
 	if(!hash)
 		return false;
 
 	int cantidad_inicializadas = 0;
-	int i = 0;
+	int i = pos_inicial;
 	bool inicializa_correctamente = true;
 
 	while(i < hash->capacidad && inicializa_correctamente){
@@ -46,7 +48,7 @@ bool inicializar_listas(hash_t* hash){
 	}
 
 	if(!inicializa_correctamente){
-		for (size_t i = 0; i < cantidad_inicializadas; i++)
+		for (size_t i = pos_inicial; i < cantidad_inicializadas + pos_inicial; i++)
 			lista_destruir(hash->index[i]);
 	}
 
@@ -68,6 +70,7 @@ hash_t* hash_crear(hash_destruir_dato_t destruir_elemento, size_t capacidad){
 	hash->capacidad = capacidad;
 	hash->cantidad_elementos = SIN_ELEMENTOS;
 	hash->destructor = destruir_elemento;
+	hash->factor_carga = 0;
 
 	hash->index = malloc(sizeof(void*) * capacidad);
 	if(!hash->index){
@@ -75,7 +78,7 @@ hash_t* hash_crear(hash_destruir_dato_t destruir_elemento, size_t capacidad){
 		return NULL;
 	}
 
-	if(!inicializar_listas(hash)){
+	if(!inicializar_listas(hash, 0)){
 		free(hash->index);
 		free(hash);
 		return NULL;
@@ -117,6 +120,47 @@ elemento_t* crear_elemento(char* clave, void* elemento){
 
 	return elem;
 }
+
+
+int hash_rehashear(hash_t* hash){
+
+	if(!hash)
+		return ERROR;
+	printf("Rehasheando....\n");
+
+	void* aux = realloc(hash->index, (2* hash->capacidad) * sizeof(void*));
+	if(!aux)
+		return ERROR;
+
+	hash->index = aux;
+	int cantidad_aux = hash->capacidad;
+	hash->capacidad = (2*hash->capacidad);
+	if(!inicializar_listas(hash, cantidad_aux))
+		return ERROR;
+
+	elemento_t* elem[hash->cantidad_elementos];
+	int tope_elem = 0;
+
+	for(int i = 0; i < cantidad_aux; i++){
+
+		while(!lista_vacia(hash->index[i])){
+			lista_iterador_t* iter = lista_iterador_crear(hash->index[i]);
+			elemento_t* aux = lista_iterador_siguiente(iter);
+			if(aux){	
+				elem[tope_elem] = aux;
+				tope_elem++;
+				lista_borrar_de_posicion(hash->index[i], 0);
+				hash->cantidad_elementos--;
+			}
+			lista_iterador_destruir(iter);
+		}
+	}
+
+	for(int j = 0; j < tope_elem; j++){
+		hash_insertar(hash, elem[j]->clave, elem[j]->elemento);
+		free(elem[j]);
+	}
+}
 /*
  * Inserta un elemento reservando la memoria necesaria para el mismo.
  * Devuelve 0 si pudo guardarlo o -1 si no pudo.
@@ -129,12 +173,18 @@ int hash_insertar(hash_t* hash, const char* clave, void* elemento){
 	if(hash_contiene(hash, clave))
 		hash_quitar(hash, clave);
 
+
+	hash->cantidad_elementos++;
+	hash->factor_carga = hash->cantidad_elementos/hash->capacidad;
+
+	if(hash->factor_carga >= FACTOR_REHASH)
+		hash_rehashear(hash);
+
 	elemento_t* elemento_a_insertar = crear_elemento((char*)clave, elemento);
 	if(!elemento_a_insertar)
 		return ERROR;
 
 	int posicion_hash = determinar_posicion_hash(clave) % hash->capacidad;
-	hash->cantidad_elementos++;
 
 	return lista_insertar(hash->index[posicion_hash], elemento_a_insertar);
 }
@@ -198,7 +248,6 @@ void* hash_obtener(hash_t* hash, const char* clave){
 	elemento_t* elem;
 
 	while(lista_iterador_tiene_siguiente(iter) && !encontro){
-
 		elem = lista_iterador_siguiente(iter);
 		if(strcmp(clave, elem->clave) == 0)
 			encontro = true;
@@ -365,7 +414,7 @@ void* hash_iterador_siguiente(hash_iterador_t* iterador){
 		lista_iterador_destruir(iterador->lista_iterador);
 		iterador->lista_actual++;
 		iterador->lista_iterador = lista_iterador_crear(iterador->hash->index[iterador->lista_actual]);
-		if(iterador->lista_iterador)
+		if(!iterador->lista_iterador)
 			return NULL;
 
 		return hash_iterador_siguiente(iterador);
@@ -386,19 +435,15 @@ bool hash_iterador_tiene_siguiente(hash_iterador_t* iterador){
 
 	if(lista_iterador_tiene_siguiente(iterador->lista_iterador))
 		return true;
+	
 
 	if(!lista_iterador_tiene_siguiente(iterador->lista_iterador) && iterador->lista_actual < iterador->hash->capacidad - 1){
-
+		
 		bool tiene_siguiente = false;
 		size_t lista_actual = iterador->lista_actual + 1;
-		while(!tiene_siguiente && lista_actual <= iterador->hash->capacidad - 1){
-			
-			lista_iterador_t* aux = lista_iterador_crear(iterador->hash->index[lista_actual]);
-			if(!aux)
-				break;
-
-			tiene_siguiente = lista_iterador_tiene_siguiente(aux);
-			lista_iterador_destruir(aux);
+		
+		while(!tiene_siguiente && lista_actual <= iterador->hash->capacidad - 1){		
+			tiene_siguiente = !lista_vacia(iterador->hash->index[lista_actual]);
 			lista_actual++;
 		}
 
