@@ -4,17 +4,8 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-typedef struct nodo {
-	void* elemento;
-	struct nodo* siguiente;
-} nodo_t;
 
-
-typedef struct lista{
-    nodo_t* nodo_inicio;
-	nodo_t* nodo_fin;
-	size_t tamanio;
-} lista_t;
+typedef struct lista lista_t;
 
 
 typedef struct lista_iterador lista_iterador_t;

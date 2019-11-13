@@ -7,6 +7,18 @@
 #define ERROR -1
 #define EXITO 0
 
+typedef struct nodo {
+	void* elemento;
+	struct nodo* siguiente;
+} nodo_t;
+
+
+struct lista{
+    nodo_t* nodo_inicio;
+	nodo_t* nodo_fin;
+	size_t tamanio;
+};
+
 struct lista_iterador{
 	lista_t* lista;
 	nodo_t* corriente;
