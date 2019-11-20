@@ -54,6 +54,7 @@ bool inicializar_listas(lista_t** index, size_t pos_inicial, size_t capacidad){
 
 	return inicializa_correctamente;
 }
+
 /*
  * Crea el hash reservando la memoria necesaria para el.
  * Destruir_elemento es un destructor que se utilizará para liberar
@@ -121,6 +122,45 @@ elemento_t* crear_elemento(char* clave, void* elemento){
 	return elem;
 }
 
+// pre: 
+// pos: devuelve TRUE si el numero es primo, FALSE caso contrario.
+bool es_primo(size_t numero){
+
+	if(numero <= 2)
+		return false;
+
+	size_t i = 2;
+	bool es_primo = true;
+
+	while(es_primo && i < numero){
+
+		if(numero % i == 0)
+			es_primo = false;
+
+		i++;
+	}
+
+	return es_primo;
+}
+
+// pre:
+// pos: devuelve el numero primo mas cercano a numero
+size_t numero_primo_mas_cercano(size_t numero){
+
+	bool primo = false;
+	size_t i = numero;
+
+	while(!primo){
+
+		if(es_primo(i))
+			primo = true;
+		else
+			i++;
+	}
+
+	return i;
+}
+
 // pre:
 // pos: agranda el tamaño del arreglo de listas. vuelve a insertar todos los elementos. Devuelve 0 si se ejecuto correctamente, -1 caso contrario
 int hash_rehashear(hash_t* hash){
@@ -128,19 +168,21 @@ int hash_rehashear(hash_t* hash){
 	if(!hash)
 		return ERROR;
 	
-	void* aux = realloc(hash->index, (2* hash->capacidad) * sizeof(void*));
+	size_t nueva_capacidad = numero_primo_mas_cercano(2 * hash->capacidad);
+
+	void* aux = realloc(hash->index, nueva_capacidad* sizeof(void*));
 	if(!aux)
 		return ERROR;
 
 	size_t cantidad_aux = hash->capacidad;
-	hash->capacidad = (2*hash->capacidad);
+	hash->capacidad = nueva_capacidad;
+	hash->index = aux;
+
 	if(!inicializar_listas(aux, cantidad_aux, hash->capacidad)){
 		hash->capacidad = cantidad_aux;
-		free(aux);
 		return ERROR;
 	}
 
-	hash->index = aux;
 	elemento_t* elem[hash->cantidad_elementos];
 	int tope_elem = 0;
 
@@ -370,8 +412,6 @@ struct hash_iter{
 	lista_iterador_t* lista_iterador;
 	size_t lista_actual;
 };
-
-
 
 /*
  * Crea un iterador de claves para el hash reservando la memoria
