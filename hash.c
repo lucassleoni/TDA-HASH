@@ -24,6 +24,7 @@ typedef struct elemento{
 	void* elemento;
 }elemento_t;
 
+extern char* strdup(const char*);
 
 // pre: 
 // pos: devuelve TRUE si pudo inicializar todas las listas correctamente, FALSE en caso contrario
@@ -116,7 +117,7 @@ elemento_t* crear_elemento(char* clave, void* elemento){
 	if(!elem)
 		return NULL;
 
-	elem->clave = clave;
+	elem->clave = strdup(clave);
 	elem->elemento = elemento;
 
 	return elem;
@@ -272,7 +273,9 @@ int hash_quitar(hash_t* hash, const char* clave){
 	lista_iterador_destruir(iter);
 
 	if(encontro){
-		hash->destructor(elem->elemento);
+		if(hash->destructor)
+			hash->destructor(elem->elemento);
+		free(elem->clave);
 		free(elem);
 		hash->cantidad_elementos--;
 		return lista_borrar_de_posicion(hash->index[posicion_hash], posicion_a_borrar);
@@ -368,7 +371,9 @@ void borrar_todos_los_elementos(hash_t* hash){
 			elem = lista_iterador_siguiente(iter);
 
 			if(elem){
-				hash->destructor(elem->elemento);
+				if(hash->destructor)
+					hash->destructor(elem->elemento);
+				free(elem->clave);
 				free(elem);
 				hash->cantidad_elementos--;
 				lista_borrar_de_posicion(hash->index[i], 0);
